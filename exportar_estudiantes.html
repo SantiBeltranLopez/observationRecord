@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Exportar Estudiantes - Firestore</title>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 900px; margin: 40px auto; padding: 20px; }
+        button { background: #2b4c7e; color: white; border: none; padding: 12px 24px; border-radius: 4px; cursor: pointer; font-size: 16px; margin: 10px; }
+        button:hover { background: #1e375c; }
+        #resultado { margin-top: 20px; padding: 15px; background: #f5f5f5; border-radius: 4px; white-space: pre-wrap; font-size: 12px; max-height: 400px; overflow-y: auto; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; font-size: 12px; }
+        th { background: #2b4c7e; color: white; }
+    </style>
+</head>
+<body>
+    <h1>📊 Exportar Estudiantes desde Firestore</h1>
+    <button onclick="exportarCSV()">📥 Descargar CSV</button>
+    <button onclick="exportarJSON()">📄 Ver en Consola (JSON)</button>
+    <button onclick="verificarDatos()">🔍 Verificar Año/Grado/Teacher</button>
+    <div id="resultado"></div>
+
+    <script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyCGc2-DXXf9tIaodODA1ORw93QiUGqoEhM",
+            authDomain: "school-observation-system.firebaseapp.com",
+            projectId: "school-observation-system",
+            storageBucket: "school-observation-system.firebasestorage.app",
+            messagingSenderId: "328709547954",
+            appId: "1:328709547954:web:c99a6cf500a7086e2126ab",
+        };
+
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+
+        async function obtenerEstudiantes() {
+            const snapshot = await db.collection("students").get();
+            const estudiantes = [];
+            snapshot.forEach(doc => {
+                const data = doc.data();
+                estudiantes.push({
+                    id: doc.id,
+                    student_id: data.student_id || data.basic_info?.student_id || "",
+                    full_name: data.full_name || data.basic_info?.name || "",
+                    grade: data.grade || data.basic_info?.grade || "",
+                    academic_year: data.academic_year || data.basic_info?.academic_year || "",
+                    homeroom_teacher: data.homeroom_teacher_id || data.governance?.homeroom_teacher_id || "",
+                    date_of_birth: data.date_of_birth || data.basic_info?.date_of_birth || "",
+                    age: data.age || data.basic_info?.age || "",
+                    inclusion: data.inclusion || data.inclusion_and_support?.inclusion || ""
+                });
+            });
+            return estudiantes;
+        }
+
+        async function exportarCSV() {
+            const resultado = document.getElementById("resultado");
+            resultado.innerHTML = "Cargando estudiantes...";
+            
+            try {
+                const estudiantes = await obtenerEstudiantes();
+                
+                // Crear CSV
+                let csv = "ID,Student ID,Nombre Completo,Grado,Año Académico,Homeroom Teacher,Fecha Nacimiento,Edad,Inclusión\n";
+                estudiantes.forEach(est => {
+                    csv += `"${est.id}","${est.student_id}","${est.full_name}","${est.grade}","${est.academic_year}","${est.homeroom_teacher}","${est.date_of_birth}","${est.age}","${est.inclusion}"\n`;
+                });
+
+                // Descargar archivo
+                const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+                const link = document.createElement("a");
+                const url = URL.createObjectURL(blob);
+                link.setAttribute("href", url);
+                link.setAttribute("download", `estudiantes_${new Date().toISOString().split('T')[0]}.csv`);
+                link.click();
+
+                resultado.innerHTML = `✅ CSV descargado exitosamente.\n📊 Total de estudiantes: ${estudiantes.length}`;
+            } catch (error) {
+                resultado.innerHTML = `❌ Error: ${error.message}`;
+            }
+        }
+
+        async function exportarJSON() {
+            const resultado = document.getElementById("resultado");
+            resultado.innerHTML = "Cargando estudiantes...";
+            
+            try {
+                const estudiantes = await obtenerEstudiantes();
+                console.log("📋 ESTUDIANTES EN FIRESTORE:", estudiantes);
+                resultado.innerHTML = `✅ Ver la consola del navegador (F12)\n📊 Total: ${estudiantes.length} estudiantes`;
+            } catch (error) {
+                resultado.innerHTML = `❌ Error: ${error.message}`;
+            }
+        }
+
+        async function verificarDatos() {
+            const resultado = document.getElementById("resultado");
+            resultado.innerHTML = "Verificando datos...\n";
+            
+            try {
+                const estudiantes = await obtenerEstudiantes();
+                let reporte = "📊 REPORTE DE VERIFICACIÓN\n";
+                reporte += "================================\n\n";
+                
+                // Agrupar por año académico
+                const porAño = {};
+                const porGrado = {};
+                const sinTeacher = [];
+                const kindergarten = [];
+
+                estudiantes.forEach(est => {
+                    // Por año
+                    const año = est.academic_year || "SIN AÑO";
+                    if (!porAño[año]) porAño[año] = 0;
+                    porAño[año]++;
+
+                    // Por grado
+                    const grado = est.grade || "SIN GRADO";
+                    if (!porGrado[grado]) porGrado[grado] = 0;
+                    porGrado[grado]++;
+
+                    // Sin teacher
+                    if (!est.homeroom_teacher || est.homeroom_teacher === "Sin asignar") {
+                        sinTeacher.push(est);
+                    }
+
+                    // Kindergarten
+                    if (est.grade === "Kindergarten") {
+                        kindergarten.push(est);
+                    }
+                });
+
+                reporte += "📅 POR AÑO ACADÉMICO:\n";
+                Object.entries(porAño).forEach(([año, count]) => {
+                    reporte += `  ${año}: ${count} estudiantes\n`;
+                });
+
+                reporte += "\n📚 POR GRADO:\n";
+                Object.entries(porGrado).forEach(([grado, count]) => {
+                    reporte += `  ${grado}: ${count} estudiantes\n`;
+                });
+
+                reporte += `\n⚠️ ESTUDIANTES SIN HOMEROOM TEACHER (${sinTeacher.length}):\n`;
+                sinTeacher.forEach(est => {
+                    reporte += `  - ${est.full_name} (${est.student_id}) - Grado: ${est.grade}\n`;
+                });
+
+                reporte += `\n KINDERGARTEN (${kindergarten.length}):\n`;
+                kindergarten.forEach(est => {
+                    reporte += `  - ${est.full_name} (${est.student_id}) - Año: ${est.academic_year} - Teacher: ${est.homeroom_teacher || 'SIN ASIGNAR'}\n`;
+                });
+
+                console.log(reporte);
+                resultado.innerHTML = reporte;
+            } catch (error) {
+                resultado.innerHTML = `❌ Error: ${error.message}`;
+            }
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,34 @@
+INSTRUCCIONES_CREAR_USUARIOS.txt
+
+NUNCA uses .add() para crear documentos de usuarios en Firestore.
+
+✅ CORRECTO: 
+
+// 1. Crear usuario en Firebase Auth
+const userCredential = await firebase.auth().createUserWithEmailAndPassword(
+  "nuevo@school.com", 
+  "ContraseñaSegura123!"
+);
+
+// 2. Guardar datos en Firestore USANDO EL UID
+await db.collection("users").doc(userCredential.user.uid).set({
+  email: "nuevo@school.com",
+  role: "homeroom",
+  name: "Nuevo Teacher",
+  assigned_classes: ["1st Grade A"]
+});
+
+
+CHECKLIST AL CREAR CUALQUIER USUARIO:
+✅ Crear en Firebase Authentication (obtener el UID)
+✅ Crear documento en Firestore con .doc(uid).set() (NO .add())
+✅ Verificar que el ID del documento = UID de Auth
+✅ Agregar todos los campos necesarios (email, role, assigned_classes, etc.)
+
+🔍 CÓMO VERIFICAR QUE ESTÁ BIEN:
+En Firebase Console → Firestore → users:
+El ID del documento debe verse como: A1B2c3D4e5F6g7H8i9J0... (UID largo)
+NO debe verse como: 0Ki14gvg... (ID corto aleatorio)
+💾 GUARDA ESTO EN UN ARCHIVO
+Copia este texto en un archivo llamado INSTRUCCIONES_CREAR_USUARIOS.txt y tenlo siempre visible cuando vayas a subir información real.
+¿Quieres que también te prepare el código completo para crear usuarios (con formulario) que ya haga esto automáticamente?

@@ -1,0 +1,9 @@
+# Exclude master backend authentication keys
+serviceAccountKey.json
+
+# Exclude locally downloaded node library structures
+node_modules/
+
+# Exclude temporary spreadsheet recovery blocks
+~$*.docx
+~$*.xlsx

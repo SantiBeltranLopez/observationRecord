@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Actualizar Kindergarten 2026-2027</title>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 800px; margin: 40px auto; padding: 20px; background: #f8f9fa; }
+        .container { background: white; padding: 30px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        h1 { color: #2b4c7e; margin-top: 0; }
+        .btn { background: #2b4c7e; color: white; border: none; padding: 12px 24px; border-radius: 4px; cursor: pointer; font-size: 16px; margin: 10px 5px 10px 0; }
+        .btn:hover { background: #1e375c; }
+        .btn:disabled { background: #ccc; cursor: not-allowed; }
+        #log { margin-top: 20px; padding: 15px; background: #2d3436; color: #00b894; border-radius: 4px; font-family: monospace; font-size: 13px; max-height: 400px; overflow-y: auto; white-space: pre-wrap; }
+        .error { color: #ff7675 !important; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔄 Actualizar Estudiantes Kindergarten (GAP-108 a GAP-115)</h1>
+        <p>1. Selecciona las 8 fotos (<code>gradoK108-2026.jpg</code> hasta <code>gradoK115-2026.jpg</code>)</p>
+        <input type="file" id="photoInput" multiple accept="image/*" style="margin-bottom: 20px;">
+        <br>
+        <button class="btn" id="btnUpdate" onclick="procesarYActualizar()">🚀 Actualizar Estudiantes y Fotos en Firestore</button>
+        <div id="log">Esperando acción...</div>
+    </div>
+
+    <script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyCGc2-DXXf9tIaodODA1ORw93QiUGqoEhM",
+            authDomain: "school-observation-system.firebaseapp.com",
+            projectId: "school-observation-system",
+            storageBucket: "school-observation-system.firebasestorage.app",
+            messagingSenderId: "328709547954",
+            appId: "1:328709547954:web:c99a6cf500a7086e2126ab",
+        };
+
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+
+        // Datos completos del CSV
+        const estudiantesData = {
+            "GAP-108": { full_name: "Mateo Gómez", grade: "Kindergarten", date_of_birth: "2020-03-15", age: "6", starting_year: "2026", inclusion: "No", diagnostic: "Ninguno", therapy: "Ninguno", homeroom_teacher_id: "Teacher Lina", father_name: "Carlos Gómez", father_contact: "3001234567", father_occupation: "Ingeniero", father_email: "carlos.gomez@example.com", mother_name: "Ana Gómez", mother_contact: "3007654321", mother_occupation: "Docente", mother_email: "ana.gomez@example.com", siblings: "0", illness: "Ninguna", allergies: "Ninguna", medicine: "Ninguna", prescription: "Ninguna", performance: "Excelente", perf: "95%" },
+            "GAP-109": { full_name: "Sofia Rodríguez", grade: "Kindergarten", date_of_birth: "2020-05-22", age: "6", starting_year: "2026", inclusion: "No", diagnostic: "Ninguno", therapy: "Ninguno", homeroom_teacher_id: "Teacher Lina", father_name: "Miguel Rodríguez", father_contact: "3002345678", father_occupation: "Arquitecto", father_email: "miguel.rodriguez@example.com", mother_name: "Laura Rodríguez", mother_contact: "3008765432", mother_occupation: "Diseñadora", mother_email: "laura.rodriguez@example.com", siblings: "1", illness: "Ninguna", allergies: "Ninguna", medicine: "Ninguna", prescription: "Ninguna", performance: "Excelente", perf: "92%" },
+            "GAP-110": { full_name: "Lucas Martínez", grade: "Kindergarten", date_of_birth: "2020-07-10", age: "6", starting_year: "2026", inclusion: "No", diagnostic: "Ninguno", therapy: "Ninguno", homeroom_teacher_id: "Teacher Lina", father_name: "Andrés Martínez", father_contact: "3003456789", father_occupation: "Médico", father_email: "andres.martinez@example.com", mother_name: "Carmen Martínez", mother_contact: "3009876543", mother_occupation: "Enfermera", mother_email: "carmen.martinez@example.com", siblings: "0", illness: "Ninguna", allergies: "Polen", medicine: "Ninguna", prescription: "Ninguna", performance: "Bueno", perf: "88%" },
+            "GAP-111": { full_name: "Isabella López", grade: "Kindergarten", date_of_birth: "2020-09-05", age: "6", starting_year: "2026", inclusion: "No", diagnostic: "Ninguno", therapy: "Ninguno", homeroom_teacher_id: "Teacher Lina", father_name: "Fernando López", father_contact: "3004567890", father_occupation: "Abogado", father_email: "fernando.lopez@example.com", mother_name: "Diana López", mother_contact: "3000987654", mother_occupation: "Contadora", mother_email: "diana.lopez@example.com", siblings: "2", illness: "Ninguna", allergies: "Ninguna", medicine: "Ninguna", prescription: "Ninguna", performance: "Excelente", perf: "94%" },
+            "GAP-112": { full_name: "Liam Hernández", grade: "Kindergarten", date_of_birth: "2020-11-18", age: "5", starting_year: "2026", inclusion: "No", diagnostic: "Ninguno", therapy: "Ninguno", homeroom_teacher_id: "Teacher Lina", father_name: "Camila Hernández", father_contact: "3005678901", father_occupation: "Empresaria", father_email: "camila.hernandez@example.com", mother_name: "Roberto Hernández", mother_contact: "3001098765", mother_occupation: "Ingeniero", mother_email: "roberto.hernandez@example.com", siblings: "0", illness: "Ninguna", allergies: "Ninguna", medicine: "Ninguna", prescription: "Ninguna", performance: "Excelente", perf: "90%" },
+            "GAP-113": { full_name: "Emma García", grade: "Kindergarten", date_of_birth: "2020-04-30", age: "6", starting_year: "2026", inclusion: "No", diagnostic: "Ninguno", therapy: "Ninguno", homeroom_teacher_id: "Teacher Lina", father_name: "Felipe García", father_contact: "3006789012", father_occupation: "Docente", father_email: "felipe.garcia@example.com", mother_name: "Patricia García", mother_contact: "3002109876", mother_occupation: "Psicóloga", mother_email: "patricia.garcia@example.com", siblings: "1", illness: "Ninguna", allergies: "Ninguna", medicine: "Ninguna", prescription: "Ninguna", performance: "Excelente", perf: "93%" },
+            "GAP-114": { full_name: "Noah Pérez", grade: "Kindergarten", date_of_birth: "2020-08-12", age: "6", starting_year: "2026", inclusion: "No", diagnostic: "Ninguno", therapy: "Ninguno", homeroom_teacher_id: "Teacher Lina", father_name: "Juan Pérez", father_contact: "3007890123", father_occupation: "Contador", father_email: "juan.perez@example.com", mother_name: "Mariana Pérez", mother_contact: "3003210987", mother_occupation: "Administradora", mother_email: "mariana.perez@example.com", siblings: "0", illness: "Ninguna", allergies: "Lácteos", medicine: "Ninguna", prescription: "Ninguna", performance: "Bueno", perf: "87%" },
+            "GAP-115": { full_name: "Mia Sánchez", grade: "Kindergarten", date_of_birth: "2020-12-25", age: "5", starting_year: "2026", inclusion: "No", diagnostic: "Ninguno", therapy: "Ninguno", homeroom_teacher_id: "Teacher Lina", father_name: "Santiago Sánchez", father_contact: "3008901234", father_occupation: "Ingeniero", father_email: "santiago.sanchez@example.com", mother_name: "Valentina Sánchez", mother_contact: "3004321098", mother_occupation: "Arquitecta", mother_email: "valentina.sanchez@example.com", siblings: "0", illness: "Ninguna", allergies: "Ninguna", medicine: "Ninguna", prescription: "Ninguna", performance: "Excelente", perf: "91%" }
+        };
+
+        function log(msg, isError = false) {
+            const logDiv = document.getElementById("log");
+            const span = document.createElement("div");
+            span.textContent = msg;
+            if (isError) span.className = "error";
+            logDiv.appendChild(span);
+            logDiv.scrollTop = logDiv.scrollHeight;
+        }
+
+        async function procesarYActualizar() {
+            const files = document.getElementById("photoInput").files;
+            if (files.length === 0) {
+                log("⚠️ Por favor selecciona al menos una foto.", true);
+                return;
+            }
+
+            document.getElementById("btnUpdate").disabled = true;
+            log("🔄 Iniciando proceso de actualización...");
+
+            // Mapear archivos por ID extraído del nombre (ej: gradoK108-2026.jpg -> GAP-108)
+            const fotosMap = {};
+            for (let file of files) {
+                const match = file.name.match(/gradoK(\d+)-2026/i);
+                if (match) {
+                    const studentId = `GAP-${match[1]}`;
+                    fotosMap[studentId] = file;
+                }
+            }
+
+            let completados = 0;
+            const total = Object.keys(estudiantesData).length;
+
+            for (const [studentId, data] of Object.entries(estudiantesData)) {
+                try {
+                    log(`⏳ Procesando ${studentId} (${data.full_name})...`);
+                    
+                    let photoBase64 = "";
+                    if (fotosMap[studentId]) {
+                        photoBase64 = await convertirABase64(fotosMap[studentId]);
+                        log(`  ✅ Foto cargada para ${studentId} (${(photoBase64.length / 1024).toFixed(1)} KB)`);
+                    } else {
+                        log(`  ⚠️ No se encontró foto para ${studentId}, se mantendrá la anterior o vacía.`, true);
+                    }
+
+                    // Construir payload con la estructura exacta de la app
+                    const payload = {
+                        basic_info: {
+                            name: data.full_name,
+                            grade: data.grade,
+                            date_of_birth: data.date_of_birth,
+                            age: data.age,
+                            starting_year: data.starting_year,
+                            photo: photoBase64 // Se actualiza o se deja vacío si no hay foto
+                        },
+                        inclusion_and_support: {
+                            inclusion: data.inclusion,
+                            diagnostic: data.diagnostic,
+                            therapeutic_process: data.therapy
+                        },
+                        governance: {
+                            homeroom_teacher_id: data.homeroom_teacher_id
+                        },
+                        family_and_contact: {
+                            father_name: data.father_name,
+                            father_contact: data.father_contact,
+                            father_occupation: data.father_occupation,
+                            father_email: data.father_email,
+                            mother_name: data.mother_name,
+                            mother_contact: data.mother_contact,
+                            mother_occupation: data.mother_occupation,
+                            mother_email: data.mother_email,
+                            siblings: data.siblings
+                        },
+                        medical_record: {
+                            illnesses: data.illness,
+                            allergies: data.allergies,
+                            medicine: data.medicine,
+                            prescription: data.prescription
+                        },
+                        academic_metrics: {
+                            academic_performance: data.performance,
+                            perf: data.perf
+                        }
+                    };
+
+                    // Actualizar usando merge: true para no borrar subcolecciones (observaciones, conferencias)
+                    await db.collection("students").doc(studentId).set(payload, { merge: true });
+                    log(`  ✅✅ ${studentId} actualizado exitosamente en Firestore.`);
+                    completados++;
+
+                } catch (error) {
+                    log(`  ❌ ERROR en ${studentId}: ${error.message}`, true);
+                }
+            }
+
+            log(`\n🎉 PROCESO FINALIZADO: ${completados} de ${total} estudiantes actualizados.`);
+            document.getElementById("btnUpdate").disabled = false;
+        }
+
+        function convertirABase64(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = () => resolve(reader.result);
+                reader.onerror = reject;
+                reader.readAsDataURL(file);
+            });
+        }
+    </script>
+</body>
+</html>
